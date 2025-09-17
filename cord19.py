@@ -5,11 +5,13 @@ CORD-19 Metadata Explorer
 import pandas as pd
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud
+import streamlit as st
 
 
 def load_data(path="data/metadata.csv"):
     """Loading CORD-19 metadata from a CSV file."""
     df = pd.read_csv(path, low_memory=False)
+    # df.head(500).to_csv("data/metadata_sample.csv", index=False) --uncomment to use sample data of 500 records
     return df
 
 
@@ -33,7 +35,7 @@ def clean_data(df):
     # Creating abstract word count as an example
     df['abstract_word_count'] = df["abstract"].fillna("").apply(lambda x: len(x.split()))
 
-    #Removing rows with missing title or publish_time
+    # Removing rows with missing title or publish_time
     df_clean = df.dropna(subset=["title", "publish_time"])
 
     return df_clean
@@ -48,7 +50,7 @@ def analyze_and_visualize(df):
     plt.title("Publications by Year")
     plt.xlabel("Year")
     plt.ylabel("Number of Publications")
-    plt.savefig("publications_by_year.png")
+    plt.savefig("images/publications_by_year.png")
     plt.close()
 
     # Top journals
@@ -58,7 +60,7 @@ def analyze_and_visualize(df):
     plt.title("Top 10 Journals Publishing COVID-19 Research")
     plt.ylabel("Count")
     plt.tight_layout()
-    plt.savefig("top_journals.png")
+    plt.savefig("images/top_journals.png")
     plt.close()
 
     # Word cloud of titles
@@ -67,14 +69,51 @@ def analyze_and_visualize(df):
     plt.figure(figsize=(10, 6))
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis("off")
-    plt.savefig("title_wordcloud.png")
+    plt.savefig("images/title_wordcloud.png")
     plt.close()
 
-    print("Visualizations saved: publications_by_year.png, top_journals.png, title_wordcloud.png")
+    print("Visualizations saved to images folder")
+
+
+def streamlit_app(df):
+    """Streamlit app for interactive exploration."""
+    st.title("CORD-19 Data Explorer")
+    st.write("Simple exploration of COVID-19 research papers")
+
+    # Filtering year
+    min_year, max_year = int(df["year"].min()), int(df["year"].max())
+    year_range = st.slider("Select year range", min_year, max_year, (2020, 2021))
+    filtered = df[(df["year"] >= year_range[0]) & (df["year"] <= year_range[1])]
+
+    # Displaying sample data
+    st.subheader("Sample Data")
+    st.write(filtered.head())
+
+    # Year of publication
+    st.subheader("Publications by Year")
+    year_counts = filtered["year"].value_counts().sort_index()
+    st.bar_chart(year_counts)
+
+    # Top journals
+    st.subheader("Top Journals")
+    st.bar_chart(filtered["journal"].value_counts().head(10))
+
+    # Word cloud
+    st.subheader("Word Cloud of Titles")
+    text = " ".join(filtered["title"].dropna().tolist())
+
+    if text:
+        wordcloud = WordCloud(width=800, height=400, background_color="white").generate(text)
+        plt.imshow(wordcloud, interpolation="bilinear")
+        plt.axis("off")
+        st.pyplot(plt) 
+
 
 
 if __name__ == "__main__":
     df = load_data()
-    explore_data(df)
+    # explore_data(df) --uncomment to use
     df_clean = clean_data(df)
-    analyze_and_visualize(df_clean)
+    # analyze_and_visualize(df_clean) --uncomment to use
+
+    streamlit_app(df_clean)
