@@ -3,6 +3,8 @@ CORD-19 Metadata Explorer
 """
 
 import pandas as pd
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
 
 
 def load_data(path="data/metadata.csv"):
@@ -37,7 +39,42 @@ def clean_data(df):
     return df_clean
 
 
+def analyze_and_visualize(df):
+    """Analysis and Visualization"""
+    # Publications per year
+    year_counts = df["year"].value_counts().sort_index()
+    plt.figure(figsize=(8, 5))
+    plt.bar(year_counts.index, year_counts.values)
+    plt.title("Publications by Year")
+    plt.xlabel("Year")
+    plt.ylabel("Number of Publications")
+    plt.savefig("publications_by_year.png")
+    plt.close()
+
+    # Top journals
+    top_journals = df["journal"].value_counts().head(10)
+    plt.figure(figsize=(8, 5))
+    top_journals.plot(kind='bar')
+    plt.title("Top 10 Journals Publishing COVID-19 Research")
+    plt.ylabel("Count")
+    plt.tight_layout()
+    plt.savefig("top_journals.png")
+    plt.close()
+
+    # Word cloud of titles
+    text = " ".join(df["title"].dropna().tolist())
+    wordcloud = WordCloud(width=800, height=400,background_color='white').generate(text)
+    plt.figure(figsize=(10, 6))
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis("off")
+    plt.savefig("title_wordcloud.png")
+    plt.close()
+
+    print("Visualizations saved: publications_by_year.png, top_journals.png, title_wordcloud.png")
+
+
 if __name__ == "__main__":
     df = load_data()
     explore_data(df)
     df_clean = clean_data(df)
+    analyze_and_visualize(df_clean)
